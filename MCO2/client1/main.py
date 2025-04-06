@@ -28,9 +28,12 @@ class RTCPSender:
             time.sleep(5)
 
 def main():
+    # Prompt the user to input the audio file name
+    audio_file = input("Enter the name of the .wav file to play (e.g., audio.wav): ")
+
     # Use localhost for testing
     sip_client = SIPClient(local_ip="127.0.0.1", local_port=5060, remote_ip="127.0.0.1", remote_port=5061)
-    rtp_sender = RTPSender(audio_file="audio.wav", remote_ip="127.0.0.1", remote_port=5004)
+    rtp_sender = RTPSender(audio_file=audio_file, remote_ip="127.0.0.1", remote_port=5004)
     rtcp_sender = RTCPSender(remote_ip="127.0.0.1", remote_port=5005)
 
     try:
@@ -44,12 +47,12 @@ def main():
         rtcp_thread.start()
 
         # Send RTP audio
-        print("Sending RTP audio...")
+        print(f"Sending RTP audio from file: {audio_file}...")
         rtp_sender.send_audio()
         print("RTP audio transmission complete.")
 
     except FileNotFoundError:
-        print("Error: Audio file 'audio.wav' not found.")
+        print(f"Error: Audio file '{audio_file}' not found.")
     except Exception as e:
         print(f"Error: {e}")
     finally:
