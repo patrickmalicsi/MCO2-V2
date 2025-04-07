@@ -67,4 +67,19 @@ class SIPClient:
         bye_message += "CSeq: 2 BYE\r\n"
         bye_message += "Content-Length: 0\r\n\r\n"
         self.sock.sendto(bye_message.encode(), (self.remote_ip, self.remote_port))
+        print("BYE message sent. Waiting for the other side to send its BYE message...")
+
+        # Wait for the BYE message from the other client
+        try:
+            self.sock.settimeout(5)  # Set a timeout of 5 seconds
+            while True:
+                message, addr = self.sock.recvfrom(1024)
+                if b"BYE" in message:
+                    print("BYE message received from client 2.")
+                    break
+        except socket.timeout:
+            print("Timeout waiting for BYE message from client 2.")
+
+        # Close the socket
         self.sock.close()
+        print("Socket closed.")
