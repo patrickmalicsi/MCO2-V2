@@ -15,7 +15,22 @@ class SIPClient:
         while True:
             message, addr = self.sock.recvfrom(1024)
             if b"INVITE" in message:
-                # SDP Body
+                # Extract SDP from the INVITE message
+                message_str = message.decode()
+                sdp_start = message_str.find("\r\n\r\n") + 4  # SDP starts after the blank line
+                sdp = message_str[sdp_start:]
+
+                # Parse the c= line (connection information)
+                for line in sdp.splitlines():
+                    if line.startswith("c="):
+                        self.remote_ip = line.split()[2]  # Extract the IP address
+                    elif line.startswith("m="):
+                        self.remote_port = int(line.split()[1])  # Extract the port
+
+                # Log the parsed SDP information
+                print(f"[Client 2] Parsed SDP: Remote IP = {self.remote_ip}, Remote Port = {self.remote_port}")
+
+                # SDP Body for 200 OK Response
                 sdp_body = f"v=0\r\n"
                 sdp_body += f"o=- 0 0 IN IP4 {self.local_ip}\r\n"
                 sdp_body += f"s=VoIP Call\r\n"
@@ -37,7 +52,7 @@ class SIPClient:
                 self.sock.sendto(response.encode(), addr)
 
             if b"ACK" in message:
-                print("ACK received. Call established.")
+                print("[Client 2] ACK received. Call established.")
                 break
 
     def end_call(self):
@@ -50,4 +65,19 @@ class SIPClient:
         bye_message += "CSeq: 2 BYE\r\n"
         bye_message += "Content-Length: 0\r\n\r\n"
         self.sock.sendto(bye_message.encode(), (self.remote_ip, self.remote_port))
+        print("BYE message sent. Waiting for the other side to send its BYE message...")
+
+        # Wait for the BYE message from the other client
+        try:
+            self.sock.settimeout(5)  # Set a timeout of 5 seconds
+            while True:
+                message, addr = self.sock.recvfrom(1024)
+                if b"BYE" in message:
+                    print("BYE message received from client 1.")
+                    break
+        except socket.timeout:
+            print("Timeout waiting for BYE message from client 1.")
+
+        # Close the socket
         self.sock.close()
+        print("Socket closed.")
